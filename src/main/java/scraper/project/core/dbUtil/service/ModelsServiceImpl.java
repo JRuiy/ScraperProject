@@ -1,6 +1,5 @@
 package scraper.project.core.dbUtil.service;
 
-import java.sql.SQLException;
 import java.util.List;
 import scraper.project.core.dbUtil.dao.ModelsDao;
 import scraper.project.core.dbUtil.dao.ModelsDaoImpl;
@@ -10,6 +9,9 @@ public class ModelsServiceImpl implements ModelsService{
 
     private final ModelsDao modelsDao;
 
+    public static ModelsServiceImpl getInstance(String dbName, String creationPackage) {
+        return new ModelsServiceImpl(dbName, creationPackage);
+    }
 
     private ModelsServiceImpl(String dbName, String creationPackage) {
         this.modelsDao = ModelsDaoImpl.getInstance(dbName, creationPackage);
