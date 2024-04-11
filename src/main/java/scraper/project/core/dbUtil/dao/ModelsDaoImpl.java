@@ -1,10 +1,10 @@
 package scraper.project.core.dbUtil.dao;
 
 import java.sql.SQLException;
-import java.sql.Savepoint;
 import java.util.List;
+import java.util.Map;
 import com.j256.ormlite.dao.Dao;
-import com.j256.ormlite.support.DatabaseConnection;
+import com.j256.ormlite.table.TableUtils;
 import scraper.project.core.dbUtil.DBConnection;
 import scraper.project.core.models.Exportable;
 
@@ -12,13 +12,9 @@ public class ModelsDaoImpl implements ModelsDao {
 
     private final DBConnection dbConnection;
 
-    private static ModelsDao modelsDao = null;
 
     public static ModelsDao getInstance(String dbName, String creationPackage) {
-        if (modelsDao == null) {
-            modelsDao = new ModelsDaoImpl(dbName, creationPackage);
-        }
-        return modelsDao;
+        return new ModelsDaoImpl(dbName, creationPackage);
     }
 
 
@@ -27,33 +23,51 @@ public class ModelsDaoImpl implements ModelsDao {
     }
 
     @Override
-    public <T extends Exportable> void saveModels(List<T> models) throws SQLException {
+    public <T extends Exportable> void saveModels(List<T> models) {
         if (!models.isEmpty()) {
             @SuppressWarnings("unchecked")
             Dao<T, ?> dao = (Dao<T, ?>) dbConnection.getDaoForClass(models.getFirst().getClass());
-            for (T model : models) {
-                insertModel(model, dao);
+            try {
+                for (T model : models) {
+                    insertModel(model, dao);
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException("Can't insert or update models: " + models, e);
             }
+            models.clear();
         }
     }
 
     @Override
     public void dropDatabase() {
-
+        for (Map.Entry<Class<?>, Dao<?, ?>> dao : dbConnection.getDaoMap().entrySet()) {
+            try {
+                TableUtils.dropTable(dao.getValue(), true);
+            } catch (SQLException e) {
+                throw new RuntimeException("Can't drop table for: " + dao.getKey(), e);
+            }
+        }
+        dbConnection.createTableAndDao();
     }
 
     @Override
-    public <T> void deleteAllModels(T model) {
-
+    public <T> void deleteAllModels(Class<T> clazz) {
+        try {
+            TableUtils.dropTable(dbConnection.getConnectionSource(), clazz,true);
+            TableUtils.createTableIfNotExists(dbConnection.getConnectionSource(), clazz);
+        } catch (SQLException e) {
+            throw new RuntimeException("Can't drop table for: " + clazz, e);
+        }
     }
 
-    private <T extends Exportable> void insertModel(T model, Dao<T, ?> dao) {
+    private <T extends Exportable> void insertModel(T model, Dao<T, ?> dao) throws SQLException {
         if (model != null) {
-            try {
-                dao.createOrUpdate(model);
-            } catch (SQLException e) {
-                throw new RuntimeException("Can't insert or update model: " + model, e);
-            }
+            dao.createOrUpdate(model);
         }
+    }
+
+    @Override
+    public void closeConnection() {
+        dbConnection.closeDatabaseConnection();
     }
 }

@@ -1,6 +1,7 @@
 package scraper.project.core.dbUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.URL;
@@ -22,10 +23,11 @@ import scraper.project.core.models.Exportable;
 public class DBConnection {
     private static final String FOLDER_PATH = "data";
     private static final String JDBC_DRIVER = "jdbc:sqlite:";
+    @Getter
     private final ConnectionSource connectionSource;
     private static DBConnection db = null;
     @Getter
-    private static final Map<Class<?>, Dao<?, ?>> daoMap = new HashMap<>();
+    private final Map<Class<?>, Dao<?, ?>> daoMap = new HashMap<>();
     private final String creationPackage;
 
     public static DBConnection getInstance(String dbName, String creationPackage) {
@@ -45,7 +47,7 @@ public class DBConnection {
         createTableAndDao();
     }
 
-    private void createTableAndDao() {
+    public void createTableAndDao() {
         List<Class<?>> classes = getExportableClasses();
         for (Class<?> clazz : classes) {
             
@@ -102,5 +104,15 @@ public class DBConnection {
             throw new IllegalArgumentException("No Dao found for class: " + clazz);
         }
         return dao;
+    }
+
+    public void closeDatabaseConnection() {
+        try {
+            if (connectionSource != null) {
+                connectionSource.close();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Can't close connection", e);
+        }
     }
 }
