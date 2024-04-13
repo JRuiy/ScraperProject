@@ -70,4 +70,9 @@ public class ModelsDaoImpl implements ModelsDao {
     public void closeConnection() {
         dbConnection.closeDatabaseConnection();
     }
+
+    @Override
+    public String getDbName() {
+        return dbConnection.getDbAddress();
+    }
 }

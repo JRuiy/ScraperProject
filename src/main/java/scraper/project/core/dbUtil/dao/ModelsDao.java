@@ -8,4 +8,5 @@ public interface ModelsDao {
     void dropDatabase();
     <T> void deleteAllModels(Class<T> clazz);
     void closeConnection();
+    String getDbName();
 }

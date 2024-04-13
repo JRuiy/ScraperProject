@@ -1,19 +1,17 @@
 package scraper.project.core.dbUtil;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
+import com.j256.ormlite.logger.LogBackendType;
+import com.j256.ormlite.logger.LoggerFactory;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import lombok.Getter;
@@ -21,6 +19,9 @@ import scraper.project.core.models.Exportable;
 
 
 public class DBConnection {
+    static {
+        LoggerFactory.setLogBackendFactory(LogBackendType.NULL);
+    }
     private static final String FOLDER_PATH = "data";
     private static final String JDBC_DRIVER = "jdbc:sqlite:";
     @Getter
@@ -29,6 +30,8 @@ public class DBConnection {
     @Getter
     private final Map<Class<?>, Dao<?, ?>> daoMap = new HashMap<>();
     private final String creationPackage;
+    @Getter
+    private String dbAddress;
 
     public static DBConnection getInstance(String dbName, String creationPackage) {
         if (db == null) {
@@ -38,6 +41,7 @@ public class DBConnection {
     }
 
     private DBConnection(String dbAddress, String creationPackage) {
+        this.dbAddress = dbAddress;
         this.creationPackage = creationPackage;
         try {
             connectionSource = new JdbcConnectionSource(JDBC_DRIVER + dbAddress);
