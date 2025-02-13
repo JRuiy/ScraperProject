@@ -1,18 +1,14 @@
 package scraper.project.core.baseParsers.playwright;
 
-import java.util.List;
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
-import com.microsoft.playwright.Response;
+import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Proxy;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import scraper.project.core.readers.FileReaders;
+
+import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class PlaywrightParser {
@@ -82,9 +78,15 @@ public class PlaywrightParser {
     }
 
     public void close() {
-        browserContext.close();
-        browser.close();
-        playwright.close();
+        if (browserContext != null) {
+            browserContext.close();
+        }
+        if (browser != null) {
+            browser.close();
+        }
+        if (playwright != null) {
+            playwright.close();
+        }
     }
 
     public void sleep(long millis) {

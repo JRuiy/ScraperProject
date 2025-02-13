@@ -6,18 +6,19 @@ import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
-import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import scraper.project.core.baseParsers.playwright.PlaywrightParser;
+import scraper.project.core.baseParsers.httpClient.dto.HttpResponseData;
+import scraper.project.core.baseParsers.httpClient.handlers.HttpEntityHandler;
 import scraper.project.core.readers.FileReaders;
 
+import java.io.IOException;
+
 public class HttpClient {
-    private static final Logger log = LogManager.getLogger(PlaywrightParser.class);
+    private static final Logger log = LogManager.getLogger(HttpClient.class);
     private final CloseableHttpClient httpClient;
 
     public static HttpClient createHttpClient(boolean isProxy, int proxy) {
@@ -43,9 +44,9 @@ public class HttpClient {
             try {
                 log.info("Try to load page [attempt {}]: {}", attempt + 1, url);
                 HttpGet request = new HttpGet(url);
-                ClassicHttpResponse httpResponse = httpClient.execute(request, response -> response);
-                int statusCode = httpResponse.getCode();
-                if (httpResponse.getCode() >= 400) {
+                HttpResponseData httpResponse = httpClient.execute(request, new HttpEntityHandler());
+                int statusCode = httpResponse.statusCode();
+                if (statusCode >= 400) {
                     log.warn("Received error response {} for {}", statusCode, url);
                     attempt++;
                     if (attempt >= maxTries) {
@@ -54,7 +55,7 @@ public class HttpClient {
                     sleep(5);
                     continue;
                 }
-                return EntityUtils.toString(httpResponse.getEntity());
+                return httpResponse.entity();
             } catch (Exception e) {
                 log.warn("Failed to load page: {}", url);
                 attempt++;
@@ -64,7 +65,7 @@ public class HttpClient {
                 sleep(5);
             }
         }
-        return url;
+        return null;
     }
 
     public String post(String url, String payload, Header[] headers) {
@@ -77,9 +78,9 @@ public class HttpClient {
                 HttpPost request = new HttpPost(url);
                 request.setEntity(new StringEntity(payload));
                 request.setHeaders(headers);
-                ClassicHttpResponse httpResponse = httpClient.execute(request, response -> response);
-                int statusCode = httpResponse.getCode();
-                if (httpResponse.getCode() >= 400) {
+                HttpResponseData httpResponse = httpClient.execute(request, new HttpEntityHandler());
+                int statusCode = httpResponse.statusCode();
+                if (httpResponse.statusCode() >= 400) {
                     log.warn("Received error response {} for {}", statusCode, url);
                     attempt++;
                     if (attempt >= maxTries) {
@@ -88,7 +89,7 @@ public class HttpClient {
                     sleep(5);
                     continue;
                 }
-                return EntityUtils.toString(httpResponse.getEntity());
+                return httpResponse.entity();
             } catch (Exception e) {
                 log.warn("Failed to load page: {}", url);
                 attempt++;
@@ -98,13 +99,22 @@ public class HttpClient {
                 sleep(5);
             }
         }
-        return url;
+        return null;
     }
 
     private void sleep(int seconds) {
         try {
             Thread.sleep(seconds * 1000L);
         } catch (InterruptedException ignored) {
+        }
+    }
+
+    public void close() {
+        try {
+            httpClient.close();
+        } catch (IOException e) {
+            log.warn("Failed to close HttpClient", e);
+            throw new RuntimeException(e);
         }
     }
 }
